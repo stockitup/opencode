@@ -8,8 +8,8 @@ import DESCRIPTION from "./read.txt"
 import { Filesystem } from "../util/filesystem"
 import { Instance } from "../project/instance"
 
-const DEFAULT_READ_LIMIT = 2000
-const MAX_LINE_LENGTH = 2000
+const DEFAULT_READ_LIMIT = 5000
+const MAX_LINE_LENGTH = 5000
 
 export const ReadTool = Tool.define("read", {
   description: DESCRIPTION,

@@ -9,3 +9,6 @@ openapi.json
 playground
 tmp
 dist
+opencode
+opencode-cli
+opencode-tui

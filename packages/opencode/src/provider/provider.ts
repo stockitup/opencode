@@ -49,7 +49,9 @@ export namespace Provider {
       return {
         autoload: false,
         async getModel(sdk: any, modelID: string) {
-          return sdk.responses(modelID)
+          // Strip reasoning effort suffixes before passing to API
+          const baseModelID = getBaseModelID(modelID)
+          return sdk.responses(baseModelID)
         },
         options: {},
       }
@@ -58,7 +60,9 @@ export namespace Provider {
       return {
         autoload: false,
         async getModel(sdk: any, modelID: string) {
-          return sdk.responses(modelID)
+          // Strip reasoning effort suffixes before passing to API
+          const baseModelID = getBaseModelID(modelID)
+          return sdk.responses(baseModelID)
         },
         options: {},
       }
@@ -366,7 +370,9 @@ export namespace Provider {
 
     const provider = s.providers[providerID]
     if (!provider) throw new ModelNotFoundError({ providerID, modelID })
-    const info = provider.info.models[modelID]
+    // Use base model ID (without reasoning effort suffixes) for database lookup
+    const baseModelID = getBaseModelID(modelID)
+    const info = provider.info.models[baseModelID]
     if (!info) throw new ModelNotFoundError({ providerID, modelID })
     const sdk = await getSDK(provider.info, info)
 
@@ -476,6 +482,16 @@ export namespace Provider {
       providerID: provider.info.id,
       modelID: model.id,
     }
+  }
+
+  function getBaseModelID(modelID: string): string {
+    // Strip reasoning effort suffixes for GPT-5 models to find the base model in the database
+    if (modelID.includes("gpt-5") && !modelID.includes("gpt-5-chat")) {
+      if (modelID.endsWith("-high") || modelID.endsWith("-medium") || modelID.endsWith("-low")) {
+        return modelID.replace(/-(high|medium|low)$/, "")
+      }
+    }
+    return modelID
   }
 
   export function parseModel(model: string) {

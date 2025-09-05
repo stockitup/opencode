@@ -410,6 +410,16 @@ func (a *App) SwitchToAgent(agentName string) (*App, tea.Cmd) {
 	return a, a.SaveState()
 }
 
+// normalizeModelID removes reasoning effort suffixes from model IDs
+func normalizeModelID(modelID string) string {
+	if strings.HasSuffix(modelID, "-high") ||
+		strings.HasSuffix(modelID, "-medium") ||
+		strings.HasSuffix(modelID, "-low") {
+		return strings.TrimSuffix(strings.TrimSuffix(strings.TrimSuffix(modelID, "-high"), "-medium"), "-low")
+	}
+	return modelID
+}
+
 // findModelByFullID finds a model by its full ID in the format "provider/model"
 func findModelByFullID(
 	providers []opencode.Provider,
@@ -421,7 +431,7 @@ func findModelByFullID(
 	}
 
 	providerID := modelParts[0]
-	modelID := modelParts[1]
+	modelID := normalizeModelID(modelParts[1])
 
 	return findModelByProviderAndModelID(providers, providerID, modelID)
 }

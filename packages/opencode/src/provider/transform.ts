@@ -92,7 +92,17 @@ export namespace ProviderTransform {
     }
 
     if (modelID.includes("gpt-5") && !modelID.includes("gpt-5-chat")) {
-      result["reasoningEffort"] = "high"
+      // Extract reasoning effort from model ID suffix if present
+      let reasoningEffort = "high" // default
+      if (modelID.endsWith("-high")) {
+        reasoningEffort = "high"
+      } else if (modelID.endsWith("-medium")) {
+        reasoningEffort = "medium"
+      } else if (modelID.endsWith("-low")) {
+        reasoningEffort = "low"
+      }
+      
+      result["reasoningEffort"] = reasoningEffort
       if (providerID !== "azure") {
         result["textVerbosity"] = "low"
       }

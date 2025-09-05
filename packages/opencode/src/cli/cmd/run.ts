@@ -135,6 +135,8 @@ export const RunCommand = cmd({
         return await Provider.defaultModel()
       })()
 
+      console.error(`Using model: ${providerID}/${modelID}`)
+
       function printEvent(color: string, type: string, title: string) {
         UI.println(
           color + `|`,

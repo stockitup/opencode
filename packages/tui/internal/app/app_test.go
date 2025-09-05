@@ -22,6 +22,7 @@ func TestFindModelByFullID(t *testing.T) {
 			Models: map[string]opencode.Model{
 				"gpt-4":         {ID: "gpt-4"},
 				"gpt-3.5-turbo": {ID: "gpt-3.5-turbo"},
+				"gpt-5":         {ID: "gpt-5"},
 			},
 		},
 	}
@@ -67,6 +68,27 @@ func TestFindModelByFullID(t *testing.T) {
 			fullModelID:   "anthropic/nonexistent-model",
 			expectedFound: false,
 		},
+		{
+			name:               "valid full model ID with reasoning effort suffix -high",
+			fullModelID:        "openai/gpt-5-high",
+			expectedFound:      true,
+			expectedProviderID: "openai",
+			expectedModelID:    "gpt-5",
+		},
+		{
+			name:               "valid full model ID with reasoning effort suffix -medium",
+			fullModelID:        "openai/gpt-5-medium",
+			expectedFound:      true,
+			expectedProviderID: "openai",
+			expectedModelID:    "gpt-5",
+		},
+		{
+			name:               "valid full model ID with reasoning effort suffix -low",
+			fullModelID:        "openai/gpt-5-low",
+			expectedFound:      true,
+			expectedProviderID: "openai",
+			expectedModelID:    "gpt-5",
+		},
 	}
 
 	for _, tt := range tests {
@@ -111,6 +133,7 @@ func TestFindModelByProviderAndModelID(t *testing.T) {
 			Models: map[string]opencode.Model{
 				"gpt-4":         {ID: "gpt-4"},
 				"gpt-3.5-turbo": {ID: "gpt-3.5-turbo"},
+				"gpt-5":         {ID: "gpt-5"},
 			},
 		},
 	}
@@ -172,6 +195,50 @@ func TestFindModelByProviderAndModelID(t *testing.T) {
 				if provider != nil || model != nil {
 					t.Errorf("Expected not to find provider/model, but got provider: %v, model: %v", provider, model)
 				}
+			}
+		})
+	}
+}
+
+// TestNormalizeModelID tests the normalizeModelID function
+func TestNormalizeModelID(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{
+			name:     "no suffix",
+			input:    "gpt-5",
+			expected: "gpt-5",
+		},
+		{
+			name:     "high suffix",
+			input:    "gpt-5-high",
+			expected: "gpt-5",
+		},
+		{
+			name:     "medium suffix",
+			input:    "gpt-5-medium",
+			expected: "gpt-5",
+		},
+		{
+			name:     "low suffix",
+			input:    "gpt-5-low",
+			expected: "gpt-5",
+		},
+		{
+			name:     "multiple hyphens",
+			input:    "some-model-high",
+			expected: "some-model",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := normalizeModelID(tt.input)
+			if result != tt.expected {
+				t.Errorf("Expected %s, got %s", tt.expected, result)
 			}
 		})
 	}

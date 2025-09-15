@@ -9,13 +9,13 @@ for each step, use researcher to figure out the exact necessary changes, then us
 
 write an alternating todolist of researcher and executioner steps, think
 
-  research a
-  execute a
-  research b
-  execute b
+research a
+execute a
+research b
+execute b
 
-  etc
-  at the end, research the quality of your work
-  make this todolist, then go! think!
+etc
+at the end, research the quality of your work
+make this todolist, then go! think!
 
 reach your $ARGUMENTS !!

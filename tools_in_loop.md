@@ -15,26 +15,26 @@ When an agent is executing within the agentic loop (session/index.ts), it mainta
   sessionID: string,              // Unique session identifier
   messageID: string,              // Current message being processed
   agentName: string,              // Active agent (e.g., "build", "general", "plan")
-  
+
   // Stream State
   streamController: AbortController,  // For cancellation
   fullStream: AsyncIterator,         // AI SDK stream iterator
   streamMode: "tool-calling" | "regular",
-  
+
   // Message Management
   userMessage: MessageV2,         // Input message with parts
   assistantMessage: MessageV2,    // Response being constructed
   parts: Part[],                  // Message parts (text, tool calls, results)
-  
+
   // Tool State
   availableTools: Map<string, Tool>,  // Tool ID → Tool instance
   enabledTools: Record<string, boolean | "ask">,  // Permission state
   toolCallStack: ToolCall[],      // Active tool calls
-  
+
   // Execution Context
   abortSignal: AbortSignal,       // Propagated to all tools
   metadata: Map<string, any>,     // Real-time execution metadata
-  
+
   // Provider State
   providerID: string,             // LLM provider (anthropic, openai, etc.)
   modelID: string,                // Model identifier
@@ -53,26 +53,26 @@ Tool descriptions are loaded and transformed at session initialization:
 ```typescript
 // Tool description in memory
 interface LoadedTool {
-  id: string,                    // Unique identifier (e.g., "bash", "edit")
-  description: string,           // Full markdown description from .txt file
-  parameters: ZodSchema,         // Validated parameter schema
-  
+  id: string // Unique identifier (e.g., "bash", "edit")
+  description: string // Full markdown description from .txt file
+  parameters: ZodSchema // Validated parameter schema
+
   // Provider-specific transformations
   transformedSchema: {
     // OpenAI: Optional parameters become nullable
     // Google: Sanitized for Gemini compatibility
     // Anthropic: Original schema preserved
-  },
-  
+  }
+
   // Execution function with full context
-  execute: (args, context) => Promise<Result>,
-  
+  execute: (args, context) => Promise<Result>
+
   // Permission state
-  permission: "allow" | "deny" | "ask",
-  
+  permission: "allow" | "deny" | "ask"
+
   // Metadata
-  category: string,              // Tool category (file, system, web, etc.)
-  riskLevel: "low" | "medium" | "high",
+  category: string // Tool category (file, system, web, etc.)
+  riskLevel: "low" | "medium" | "high"
 }
 ```
 
@@ -85,15 +85,15 @@ Tools are statically registered in the ToolRegistry (tool/registry.ts):
 ```typescript
 // At build time - tools are imported and registered
 const ALL = [
-  BashTool,      // Command execution
-  EditTool,      // File modification
-  ReadTool,      // File reading
-  WriteTool,     // File creation
-  GlobTool,      // Pattern matching
-  GrepTool,      // Content search
-  TaskTool,      // Sub-agent delegation
-  WebFetchTool,  // Web content retrieval
-  TodoTool,      // Task tracking
+  BashTool, // Command execution
+  EditTool, // File modification
+  ReadTool, // File reading
+  WriteTool, // File creation
+  GlobTool, // Pattern matching
+  GrepTool, // Content search
+  TaskTool, // Sub-agent delegation
+  WebFetchTool, // Web content retrieval
+  TodoTool, // Task tracking
   // ... additional tools
 ]
 ```
@@ -107,29 +107,29 @@ When a session starts, tools are loaded dynamically:
 async function loadToolsForSession(agent, provider, model) {
   // Step 1: Calculate enabled tools
   const enabledTools = mergeDeep(
-    agent.tools,                    // Agent's tool configuration
-    ToolRegistry.enabled(provider, model, agent),  // Registry permissions
-    userOverrides                    // User-specified permissions
+    agent.tools, // Agent's tool configuration
+    ToolRegistry.enabled(provider, model, agent), // Registry permissions
+    userOverrides, // User-specified permissions
   )
-  
+
   // Step 2: Load and transform tool descriptions
   const tools = {}
   for (const toolDef of ToolRegistry.tools(provider, model)) {
     if (!isEnabled(toolDef.id, enabledTools)) continue
-    
+
     // Step 3: Wrap with AI SDK tool function
     tools[toolDef.id] = tool({
       id: toolDef.id,
       description: toolDef.description,
       inputSchema: transformSchema(toolDef.parameters, provider),
-      execute: wrapWithPlugins(toolDef.execute)
+      execute: wrapWithPlugins(toolDef.execute),
     })
   }
-  
+
   // Step 4: Load MCP tools if configured
   const mcpTools = await loadMCPTools(agent)
   Object.assign(tools, mcpTools)
-  
+
   return tools
 }
 ```
@@ -142,10 +142,7 @@ Each tool loads its description from a corresponding text file:
 
 ```typescript
 // Tool description loading pattern
-const DESCRIPTION = fs.readFileSync(
-  path.join(__dirname, "bash.txt"),
-  "utf-8"
-)
+const DESCRIPTION = fs.readFileSync(path.join(__dirname, "bash.txt"), "utf-8")
 ```
 
 ### 3.2 Description Transformation for LLM
@@ -157,17 +154,18 @@ function prepareToolForLLM(tool, provider) {
   const description = {
     name: tool.id,
     description: tool.description,
-    
+
     // Provider-specific parameter formatting
-    parameters: provider === "anthropic" 
-      ? tool.parameters  // Anthropic uses raw Zod schema
-      : provider === "openai"
-      ? convertToOpenAIFormat(tool.parameters)  // OpenAI JSON schema
-      : provider === "google"
-      ? sanitizeForGemini(tool.parameters)      // Gemini compatibility
-      : tool.parameters
+    parameters:
+      provider === "anthropic"
+        ? tool.parameters // Anthropic uses raw Zod schema
+        : provider === "openai"
+          ? convertToOpenAIFormat(tool.parameters) // OpenAI JSON schema
+          : provider === "google"
+            ? sanitizeForGemini(tool.parameters) // Gemini compatibility
+            : tool.parameters,
   }
-  
+
   return description
 }
 ```
@@ -188,23 +186,23 @@ for await (const event of stream.fullStream) {
         id: event.toolCallId,
         name: event.toolName,
         arguments: event.args,
-        state: "pending"
+        state: "pending",
       }
-      
+
       // Add to message parts
       parts.push({
         type: "tool-call",
-        ...toolCall
+        ...toolCall,
       })
-      
+
       // Execute the tool
       const result = await executeToolCall(toolCall)
-      
+
       // Add result to parts
       parts.push({
         type: "tool-result",
         toolCallId: toolCall.id,
-        result: result.output
+        result: result.output,
       })
       break
   }
@@ -222,16 +220,16 @@ interface ToolExecutionContext {
   messageID: string,              // Message triggering the call
   callID: string,                 // Unique tool call ID
   agent: string,                  // Agent executing the tool
-  
+
   // Control flow
   abort: AbortSignal,             // For cancellation
-  
+
   // Real-time updates
   metadata: async (update) => {   // Stream execution progress
     // Updates are sent to client in real-time
     await updateToolMetadata(callID, update)
   },
-  
+
   // Additional context
   extra: {
     workingDirectory: string,
@@ -253,22 +251,22 @@ async function processToolResult(result, toolCall) {
     title: result.title || `Executed ${toolCall.name}`,
     metadata: result.metadata || {},
     output: truncateIfNeeded(result.output, MAX_OUTPUT_LENGTH),
-    
+
     // Execution metadata
     executionTime: Date.now() - toolCall.startTime,
     status: "success" | "error",
-    
+
     // For file operations - track changes
     filesModified: result.metadata?.filesModified || [],
     filesRead: result.metadata?.filesRead || [],
   }
-  
+
   // Update session state
   await updateSessionState({
     lastToolCall: toolCall.id,
-    toolResults: [...previousResults, formattedResult]
+    toolResults: [...previousResults, formattedResult],
   })
-  
+
   return formattedResult
 }
 ```
@@ -287,7 +285,7 @@ Before a tool executes:
     arguments: validated,        // Zod-validated arguments
     permissions: checked,        // Permissions verified
   },
-  
+
   // Session maintains consistency
   fileReadTimes: Map<string, number>,  // Track file versions
   openTransactions: [],          // Any ongoing operations
@@ -305,7 +303,7 @@ While a tool is executing:
     state: "executing",
     startTime: Date.now(),
     abortController: new AbortController(),
-    
+
     // Real-time updates
     metadata: {
       progress: "Reading file...",
@@ -313,7 +311,7 @@ While a tool is executing:
       // Streamed to client via SSE
     }
   },
-  
+
   // Resource tracking
   activeProcesses: Set<ChildProcess>,  // For bash tool
   openFileHandles: Set<FileHandle>,    // For file tools
@@ -332,7 +330,7 @@ After tool execution:
     state: "completed",
     result: processedOutput,
     executionTime: duration,
-    
+
     // Side effects tracked
     sideEffects: {
       filesModified: ["src/index.ts"],
@@ -340,7 +338,7 @@ After tool execution:
       networkRequests: ["https://api.example.com"],
     }
   },
-  
+
   // Session state updated
   messagePartS: [...previousParts, toolResult],
   lastActivity: Date.now(),
@@ -356,9 +354,9 @@ Tools have a three-tier permission model:
 
 ```typescript
 enum ToolPermission {
-  ALLOW = "allow",    // Tool can execute without confirmation
-  DENY = "deny",      // Tool is blocked
-  ASK = "ask",        // Requires user confirmation
+  ALLOW = "allow", // Tool can execute without confirmation
+  DENY = "deny", // Tool is blocked
+  ASK = "ask", // Requires user confirmation
 }
 
 function resolveToolPermission(toolId, agent, userConfig) {
@@ -367,12 +365,12 @@ function resolveToolPermission(toolId, agent, userConfig) {
   if (userConfig[toolId] !== undefined) {
     return userConfig[toolId]
   }
-  
+
   // 2. Agent configuration
   if (agent.tools[toolId] !== undefined) {
     return agent.tools[toolId]
   }
-  
+
   // 3. Tool default (lowest priority)
   return getToolDefault(toolId)
 }
@@ -385,21 +383,21 @@ Tools operate within security boundaries:
 ```typescript
 interface ToolSecurityContext {
   // Path containment
-  workingDirectory: string,        // Cannot access outside
-  allowedPaths: string[],         // Additional allowed paths
-  
+  workingDirectory: string // Cannot access outside
+  allowedPaths: string[] // Additional allowed paths
+
   // Command restrictions (bash tool)
-  blockedCommands: string[],      // e.g., ["rm -rf", "sudo"]
-  requireConfirmation: string[],  // e.g., ["git push", "npm publish"]
-  
+  blockedCommands: string[] // e.g., ["rm -rf", "sudo"]
+  requireConfirmation: string[] // e.g., ["git push", "npm publish"]
+
   // Network restrictions (webfetch tool)
-  allowedDomains: string[],       // Whitelist
-  blockedDomains: string[],       // Blacklist
-  
+  allowedDomains: string[] // Whitelist
+  blockedDomains: string[] // Blacklist
+
   // Resource limits
-  maxFileSize: number,            // File operation limits
-  maxExecutionTime: number,       // Tool timeout
-  maxOutputLength: number,        // Output truncation
+  maxFileSize: number // File operation limits
+  maxExecutionTime: number // Tool timeout
+  maxOutputLength: number // Output truncation
 }
 ```
 
@@ -416,7 +414,7 @@ async function executeSequential(toolCalls) {
   for (const call of toolCalls) {
     const result = await executeToolCall(call)
     results.push(result)
-    
+
     // Update context for next tool
     updateExecutionContext(result)
   }
@@ -425,9 +423,7 @@ async function executeSequential(toolCalls) {
 
 // Parallel execution for independent tools
 async function executeParallel(toolCalls) {
-  return Promise.all(
-    toolCalls.map(call => executeToolCall(call))
-  )
+  return Promise.all(toolCalls.map((call) => executeToolCall(call)))
 }
 ```
 
@@ -438,25 +434,25 @@ The agent maintains a call stack for nested operations:
 ```typescript
 class ToolCallStack {
   private stack: ToolCall[] = []
-  
+
   push(call: ToolCall) {
     // Check for recursion
     if (this.hasRecursion(call)) {
       throw new Error("Tool recursion detected")
     }
-    
+
     // Check depth limit
     if (this.stack.length >= MAX_TOOL_DEPTH) {
       throw new Error("Maximum tool depth exceeded")
     }
-    
+
     this.stack.push(call)
   }
-  
+
   pop(): ToolCall {
     return this.stack.pop()
   }
-  
+
   getCurrentContext(): ToolContext {
     return {
       depth: this.stack.length,
@@ -476,16 +472,16 @@ Tool descriptions are cached to avoid reloading:
 ```typescript
 class ToolDescriptionCache {
   private cache = new Map<string, LoadedTool>()
-  
+
   async get(toolId: string, provider: string): Promise<LoadedTool> {
     const key = `${toolId}-${provider}`
-    
+
     if (!this.cache.has(key)) {
       const tool = await loadTool(toolId)
       const transformed = transformForProvider(tool, provider)
       this.cache.set(key, transformed)
     }
-    
+
     return this.cache.get(key)
   }
 }
@@ -499,25 +495,25 @@ Large outputs are handled efficiently:
 class ToolOutputBuffer {
   private chunks: string[] = []
   private totalSize = 0
-  
+
   append(chunk: string) {
     this.chunks.push(chunk)
     this.totalSize += chunk.length
-    
+
     // Stream to client if large
     if (this.totalSize > STREAM_THRESHOLD) {
       this.flush()
     }
   }
-  
+
   flush() {
     const output = this.chunks.join("")
-    
+
     // Truncate if necessary
     if (output.length > MAX_OUTPUT_LENGTH) {
       return output.slice(0, MAX_OUTPUT_LENGTH) + "\n[Output truncated]"
     }
-    
+
     return output
   }
 }
@@ -536,7 +532,7 @@ async function safeToolExecute(tool, args, context) {
   } catch (error) {
     // Categorize error
     const errorType = categorizeError(error)
-    
+
     // Return structured error
     return {
       title: `Error: ${tool.id}`,
@@ -545,7 +541,7 @@ async function safeToolExecute(tool, args, context) {
         errorType,
         errorMessage: error.message,
       },
-      output: formatErrorForLLM(error)
+      output: formatErrorForLLM(error),
     }
   }
 }
@@ -560,17 +556,17 @@ class StateRecovery {
   async recoverFromToolError(session, toolCall, error) {
     // Roll back any partial changes
     await this.rollbackChanges(toolCall)
-    
+
     // Update session state
     session.parts.push({
       type: "tool-error",
       toolCallId: toolCall.id,
-      error: error.message
+      error: error.message,
     })
-    
+
     // Clean up resources
     await this.cleanupResources(toolCall)
-    
+
     // Continue with next operation
     return session
   }

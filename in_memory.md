@@ -17,6 +17,7 @@ User Request → Session Manager → Stream Processor → Tool Executor → Resp
 The session manager (`packages/opencode/src/session/index.ts:137-168`) maintains a multi-layered state structure:
 
 ### Active Session Maps
+
 ```typescript
 {
   // All registered sessions indexed by session ID
@@ -27,23 +28,25 @@ The session manager (`packages/opencode/src/session/index.ts:137-168`) maintains
     mode: "build" | "plan" | "agent:*"
     agentName?: string
   }>,
-  
-  // Message history cache per session  
+
+  // Message history cache per session
   messages: Map<string, MessageV2.Info[]>,
-  
+
   // Active execution locks (one per running session)
   pending: Map<string, AbortController>,
-  
+
   // Auto-summarization flags for long conversations
   autoCompacting: Map<string, boolean>,
-  
+
   // Queued messages for busy sessions
   queued: Map<string, QueuedMessage[]>
 }
 ```
 
 ### Queued Message Structure
+
 When a session is busy, incoming requests queue with:
+
 - `input`: Original chat parameters
 - `message`: User message metadata
 - `parts`: Message content parts
@@ -55,18 +58,20 @@ When a session is busy, incoming requests queue with:
 During execution, two primary message objects exist:
 
 ### User Message (`MessageV2.User`)
+
 ```typescript
 {
-  id: "01JFN3X8Q2..."           // ULID timestamp-based ID
+  id: "01JFN3X8Q2..." // ULID timestamp-based ID
   role: "user"
-  sessionID: "01JFN3X8Q1..."    
-  time: { 
-    created: 1734567890123       // Unix timestamp
+  sessionID: "01JFN3X8Q1..."
+  time: {
+    created: 1734567890123 // Unix timestamp
   }
 }
 ```
 
 ### Assistant Message (`MessageV2.Assistant`)
+
 ```typescript
 {
   id: "01JFN3X8Q3..."
@@ -125,13 +130,13 @@ The `createProcessor` function (`session/index.ts:1285-1296`) maintains real-tim
       }
     }
   },
-  
+
   // Git snapshot for tracking file changes
   snapshot: "snap_01JFN3X8Q5...",
-  
+
   // Emergency stop flag (set by stopWhen conditions)
   shouldStop: false,
-  
+
   // Current streaming text part
   currentText: {
     id: "01JFN3X8Q6..."
@@ -139,7 +144,7 @@ The `createProcessor` function (`session/index.ts:1285-1296`) maintains real-tim
     content: "I'll help you with..."  // Accumulating text
     time: { created: 1734567890789 }
   },
-  
+
   // O1-style reasoning traces
   reasoningMap: {
     "reasoning_01abc...": {
@@ -164,7 +169,7 @@ The `streamText()` call (`session/index.ts:924-1038`) operates with:
     { role: "assistant", content: [...parts] },
     { role: "user", content: "..." }
   ],
-  
+
   // Tool implementations
   tools: {
     Read: { description: "...", parameters: ZodSchema, execute: fn },
@@ -172,18 +177,18 @@ The `streamText()` call (`session/index.ts:924-1038`) operates with:
     Bash: { description: "...", parameters: ZodSchema, execute: fn },
     // ... 15+ tools
   },
-  
+
   // Active tool names
   activeTools: ["Read", "Edit", "Bash", "Write", "Grep", ...],
-  
+
   // Generation parameters
   maxOutputTokens: 8192,
   temperature: 0.2,
   topP: 0.95,
-  
+
   // Cancellation signal
   abortSignal: AbortSignal { aborted: false },
-  
+
   // Provider-specific options
   providerOptions: {
     anthropic: {
@@ -192,11 +197,11 @@ The `streamText()` call (`session/index.ts:924-1038`) operates with:
       }
     }
   },
-  
+
   // Custom stop conditions
   stopWhen: (event) => {
-    return event.finishReason === "error" || 
-           processor.shouldStop || 
+    return event.finishReason === "error" ||
+           processor.shouldStop ||
            event.usage.steps > 1000
   }
 }
@@ -273,15 +278,15 @@ Throughout execution, message parts accumulate representing the complete interac
   // User input
   { type: "file", id: "...", source: "editor", content: "..." },
   { type: "text", id: "...", content: "Help me fix this bug" },
-  
+
   // Assistant reasoning (if O1 model)
   { type: "reasoning", id: "...", content: "Analyzing the code..." },
-  
+
   // Assistant response
   { type: "text", id: "...", content: "I'll analyze your code..." },
-  
+
   // Tool execution
-  { 
+  {
     type: "tool",
     id: "...",
     callID: "toolu_01abc...",
@@ -291,10 +296,10 @@ Throughout execution, message parts accumulate representing the complete interac
     output: "File contents...",
     time: { created: 123456, completed: 123789 }
   },
-  
+
   // More text
   { type: "text", id: "...", content: "Based on the file..." },
-  
+
   // Step boundaries (for multi-step reasoning)
   { type: "step-start", id: "...", name: "analyze" },
   { type: "step-finish", id: "...", name: "analyze", tokens: {...} }
@@ -341,32 +346,32 @@ for await (const event of stream.fullStream) {
       // Create new tool part
       // Update toolcalls map
       break
-      
+
     case "tool-call":
       // Execute tool with context
       // Stream output chunks
       break
-      
+
     case "tool-result":
       // Finalize tool part
       // Update tokens/cost
       break
-      
+
     case "text-start":
       // Initialize text part
       // Set currentText
       break
-      
+
     case "text-delta":
       // Append to currentText
       // Trigger UI update
       break
-      
+
     case "reasoning-delta":
       // Update reasoning part
       // Hidden from user view
       break
-      
+
     case "finish":
       // Finalize message
       // Calculate total cost
@@ -379,6 +384,7 @@ for await (const event of stream.fullStream) {
 ## 10. Resource Management
 
 ### Token and Cost Tracking
+
 ```typescript
 {
   totalTokens: {
@@ -399,6 +405,7 @@ for await (const event of stream.fullStream) {
 ```
 
 ### Memory Limits
+
 - Max output tokens: 8192 (configurable)
 - Max tool iterations: 1000
 - Max file read: 5000 lines × 5000 chars/line
@@ -431,6 +438,7 @@ On failure, the assistant message includes:
 ## 12. Cleanup and Persistence
 
 After completion:
+
 1. Message and parts persist to database
 2. Streaming processor state is garbage collected
 3. AbortController is removed from pending map

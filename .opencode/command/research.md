@@ -32,6 +32,7 @@ Perform comprehensive research on the specified topic or codebase area. This sho
 Be thorough but focused. Use multiple search strategies to ensure complete coverage.
 
 ## Delegation to Researcher Subagent
+
 - ALWAYS launch the researcher subagent to perform the investigative work end-to-end.
 - Provide a highly detailed prompt that includes: scope, hypotheses, files/areas of interest, and the exact outputs you expect (lists, maps, timelines, risks).
 - The main agent must not manually do the research; it should orchestrate, aggregate, and sanity-check the researcher's report.
